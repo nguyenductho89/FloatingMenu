@@ -25,15 +25,41 @@ class MenuViewController: UIViewController {
     }
 }
 
+extension UIApplication {
+    var keyWindowScene: UIWindowScene? {
+        if #available(iOS 15, *) {
+            return UIApplication
+            .shared
+            .connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first
+        } else {
+            return UIApplication
+                .shared
+                .windows
+                .filter {$0.isKeyWindow}
+                .first?
+                .windowScene
+        }
+    }
+}
+
 final class FloatingMenu {
     static let shared = FloatingMenu()
     func show() {
         menuWindow.makeKeyAndVisible()
     }
+    
+    private let buttonSize: CGSize = CGSize(width: 100.0, height: 30.0)
+    private let buttonOrigin: CGPoint = CGPoint(x: UIScreen.main.bounds.size.width - 120,
+                                                y: UIScreen.main.bounds.size.height - 50)
     lazy var menuWindow: UIWindow = {
-        let window = UIWindow(windowScene: UIApplication.shared.windows.filter {$0.isKeyWindow}.first!.windowScene!)
-        window.frame = CGRect(origin: CGPoint(x: UIScreen.main.bounds.size.width - 120, y: UIScreen.main.bounds.size.height - 50),
-                              size: CGSize(width: 100, height: 30))
+        guard let keyWindowScene = UIApplication.shared.keyWindowScene else {
+            fatalError("Recheck keywindowscene")
+        }
+        let window = UIWindow(windowScene: keyWindowScene)
+        window.frame = CGRect(origin: buttonOrigin,
+                              size: buttonSize)
         let menuVC = MenuViewController()
         menuVC.setExpand = {[weak self] isExpand in
             guard let self = self else {return}
@@ -50,7 +76,8 @@ final class FloatingMenu {
     private func expandAnimation() {
         UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn) {[weak self] in
             guard let self = self else {return}
-            let offset = UIOffset(horizontal: -50, vertical: -15)
+            let offset = UIOffset(horizontal: -self.buttonSize.width/2.0,
+                                  vertical: -self.buttonSize.height/2.0)
             let scaleTransform = CGAffineTransform(scaleX: 2, y: 2)
             let translateTransform = CGAffineTransform(translationX: offset.horizontal, y: offset.vertical)
             self.menuWindow.transform = scaleTransform.concatenating(translateTransform)
