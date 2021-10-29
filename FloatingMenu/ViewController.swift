@@ -57,10 +57,10 @@ final class FloatingMenu {
                                                 y: UIScreen.main.bounds.size.height
                                                 - FloatingMenu.buttonSize.height
                                                 - FloatingMenu.bottomMargin)
-    private static let leadingMargin = 20.0
-    private static let trailingMargin = 20.0
-    private static let topMargin = 30.0
-    private static let bottomMargin = 20.0
+    static let leadingMargin = 50.0
+    static let trailingMargin = 20.0
+    static let topMargin = 100.0
+    static let bottomMargin = 20.0
     private var scaleX: CGFloat {
         let expandMenuWidth = UIScreen.main.bounds.width - FloatingMenu.leadingMargin - FloatingMenu.trailingMargin
         return expandMenuWidth/FloatingMenu.buttonSize.width
@@ -90,22 +90,27 @@ final class FloatingMenu {
     }()
     
     private func expandAnimation() {
-        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn) {[weak self] in
+        UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {[weak self] in
             guard let self = self else {return}
-            let offset = UIOffset(horizontal: -FloatingMenu.buttonSize.width,
-                                  vertical: -FloatingMenu.buttonSize.height)
+            let offset = UIOffset(horizontal: -FloatingMenu.buttonSize.width*(self.scaleX-1)/2.0,
+                                  vertical: -FloatingMenu.buttonSize.height*(self.scaleY-1)/2.0)
             let scaleTransform = CGAffineTransform(scaleX: self.scaleX, y: self.scaleY)
             let translateTransform = CGAffineTransform(translationX: offset.horizontal,
                                                        y: offset.vertical)
-            self.menuWindow.transform = scaleTransform.concatenating(translateTransform)
+            self.menuWindow.transform = scaleTransform
+                .concatenating(translateTransform)
+        } completion: { _ in
+            print(self.menuWindow.frame)
         }
     }
     
     private func collapseAnimation() {
-        UIView.animate(withDuration: 0.3, animations: {[weak self] in
+        UIView.animate(withDuration: 0.1, animations: {[weak self] in
             guard let self = self else {return}
             self.menuWindow.transform = CGAffineTransform.identity
-        })
+        }) { _ in
+            print(self.menuWindow.frame)
+        }
     }
 }
 
