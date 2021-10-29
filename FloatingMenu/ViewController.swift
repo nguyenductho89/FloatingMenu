@@ -8,8 +8,8 @@
 import UIKit
 
 class MenuViewController: UIViewController {
-    var didShow: ((Bool)->())?
-    var isExpand = false
+    var setExpand: ((Bool)->())?
+    private var isExpand = false
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = .red
@@ -21,7 +21,7 @@ class MenuViewController: UIViewController {
     
     @objc func showMenu() {
         isExpand.toggle()
-        didShow?(isExpand)
+        setExpand?(isExpand)
     }
 }
 
@@ -35,32 +35,34 @@ final class FloatingMenu {
         window.frame = CGRect(origin: CGPoint(x: UIScreen.main.bounds.size.width - 120, y: UIScreen.main.bounds.size.height - 50),
                               size: CGSize(width: 100, height: 30))
         let menuVC = MenuViewController()
-        menuVC.didShow = {[weak self] isExpand in
+        menuVC.setExpand = {[weak self] isExpand in
             guard let self = self else {return}
-            guard isExpand else {
-                UIView.animate(withDuration: 0.5, animations: {
-                            window.transform = CGAffineTransform.identity
-                        }, completion: { (finished) in
-                        })
-                return
-            }
-            UIView.animate(withDuration: 0.5, delay: 0, options: .curveEaseIn) {
-                let offset = UIOffset(horizontal: -50, vertical: -15)
-                let scaleTransform = CGAffineTransform(scaleX: 2, y: 2)
-                let translateTransform = CGAffineTransform(translationX: offset.horizontal, y: offset.vertical)
-                window.transform = scaleTransform.concatenating(translateTransform)
-            } completion: { _ in
-                
-                
-            }
-
-            
+            isExpand ?
+            self.expandAnimation() :
+            self.collapseAnimation()
         }
         window.rootViewController = menuVC
         window.windowLevel = UIWindow.Level.alert
         window.isHidden = false
         return window
     }()
+    
+    private func expandAnimation() {
+        UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn) {[weak self] in
+            guard let self = self else {return}
+            let offset = UIOffset(horizontal: -50, vertical: -15)
+            let scaleTransform = CGAffineTransform(scaleX: 2, y: 2)
+            let translateTransform = CGAffineTransform(translationX: offset.horizontal, y: offset.vertical)
+            self.menuWindow.transform = scaleTransform.concatenating(translateTransform)
+        }
+    }
+    
+    private func collapseAnimation() {
+        UIView.animate(withDuration: 0.3, animations: {[weak self] in
+            guard let self = self else {return}
+            self.menuWindow.transform = CGAffineTransform.identity
+        })
+    }
 }
 
 class ViewController: UIViewController {
