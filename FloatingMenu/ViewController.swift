@@ -25,20 +25,14 @@ class MenuViewController: UIViewController {
     }
 }
 
-class ViewController: UIViewController {
-    var coveringWindow: UIWindow?
-        
-        func coverEverything() {
-            coveringWindow = UIWindow.init(windowScene: UIApplication.shared.windows.filter {$0.isKeyWindow}.first!.windowScene!)
-            
-            if let coveringWindow = coveringWindow {
-                coveringWindow.windowLevel = UIWindow.Level.alert + 1
-                coveringWindow.isHidden = false
-            }
-        }
+final class FloatingMenu {
+    static let shared = FloatingMenu()
+    func show() {
+        menuWindow.makeKeyAndVisible()
+    }
     lazy var menuWindow: UIWindow = {
         let window = UIWindow(windowScene: UIApplication.shared.windows.filter {$0.isKeyWindow}.first!.windowScene!)
-        window.frame = CGRect(origin: CGPoint(x: self.view.frame.size.width - 120, y: self.view.frame.size.height - 50),
+        window.frame = CGRect(origin: CGPoint(x: UIScreen.main.bounds.size.width - 120, y: UIScreen.main.bounds.size.height - 50),
                               size: CGSize(width: 100, height: 30))
         let menuVC = MenuViewController()
         menuVC.didShow = {[weak self] isExpand in
@@ -67,6 +61,11 @@ class ViewController: UIViewController {
         window.isHidden = false
         return window
     }()
+}
+
+class ViewController: UIViewController {
+
+
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
@@ -74,7 +73,7 @@ class ViewController: UIViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        menuWindow.makeKeyAndVisible()
+        FloatingMenu.shared.show()
     }
 
     
