@@ -12,7 +12,6 @@ class MenuViewController: UIViewController {
     private var isExpand = false
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.view.backgroundColor = .red
         let button = UIButton.init(frame: self.view.frame)
         button.backgroundColor = .green
         self.view.addSubview(button)
@@ -90,7 +89,7 @@ final class FloatingMenu {
     }()
     
     private func expandAnimation() {
-        UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {[weak self] in
+        UIView.animate(withDuration: 10, delay: 0, options: .curveEaseInOut) {[weak self] in
             guard let self = self else {return}
             let offset = UIOffset(horizontal: -FloatingMenu.buttonSize.width*(self.scaleX-1)/2.0,
                                   vertical: -FloatingMenu.buttonSize.height*(self.scaleY-1)/2.0)
@@ -105,7 +104,7 @@ final class FloatingMenu {
     }
     
     private func collapseAnimation() {
-        UIView.animate(withDuration: 0.1, animations: {[weak self] in
+        UIView.animate(withDuration: 1, animations: {[weak self] in
             guard let self = self else {return}
             self.menuWindow.transform = CGAffineTransform.identity
         }) { _ in
@@ -133,20 +132,18 @@ class ViewController: UIViewController {
 
     let floatView: FloatingView = {
         let view = FloatingView()
-        //view.roundCorners(corners: [.topLeft, .bottomLeft], radius: FloatingView.Constant.height/2.0)
         return view
     }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-        floatView.backgroundColor = .red
         self.view.addSubview(floatView)
     }
-    
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
+
     }
 }
 
@@ -199,11 +196,12 @@ final class FloatingHomeButton: UIButton {
         self.init(frame: CGRect(origin: .zero, size: CGSize(width: FloatingView.Constant.width, height: FloatingView.Constant.height)))
         self.setImage(UIImage(systemName: "paperplane.fill"), for: .normal)
         self.setTitle("Menu", for: .normal)
-        self.backgroundColor = .blue
+        self.backgroundColor = .systemBlue
     }
     override func layoutSubviews() {
         super.layoutSubviews()
-        roundCorners(corners: [.topLeft, .bottomLeft], radius: FloatingView.Constant.height/2.0)
+        roundCorners(corners: FloatingView.Constant.defaultRoundCorner.corners,
+                     radius: FloatingView.Constant.defaultRoundCorner.radius)
     }
 }
 
@@ -224,6 +222,8 @@ final class FloatingView: UIView {
                                                     y: UIScreen.main.bounds.size.height
                                                     - Constant.height
                                                     - Constant.bottomMargin)
+        static let defaultRoundCorner: (corners: UIRectCorner, radius: CGFloat) = (corners: [.topLeft, .bottomLeft],
+                                         radius: FloatingView.Constant.height/2.0)
         static var scaleX: CGFloat {
             let expandMenuWidth = UIScreen.main.bounds.width - Constant.leadingMargin - Constant.trailingMargin
             return expandMenuWidth/Constant.width
@@ -240,6 +240,10 @@ final class FloatingView: UIView {
             return CGRect(origin: origin,
                                size: CGSize(width: width, height: height))
         }
+        
+        static var collapseFrame: CGRect {
+            return CGRect(origin: origin, size: size)
+        }
     }
     
     private let collapseMenuView: FloatingHomeButton = {
@@ -249,19 +253,32 @@ final class FloatingView: UIView {
     
     private let expandMenuView: ExpandMenuView = {
         let menu = ExpandMenuView()
-        menu.backgroundColor = .green
+        menu.backgroundColor = .systemBlue
         menu.translatesAutoresizingMaskIntoConstraints = false
+        menu.isHidden = true
         return menu
     }()
     
+    private let scaleView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemBlue
+        view.frame = CGRect(origin: .zero, size: Constant.size)
+        view.isHidden = true
+        return view
+    }()
     
     var expandMenu: (()->())?
     var collapseMenu: (()->())?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
+        self.addSubview(expandMenuView)
         self.addSubview(collapseMenuView)
+        self.addSubview(scaleView)
         collapseMenuView.addTarget(self, action: #selector(didTapMenuButton), for: .touchUpInside)
+        expandMenuView.didTapCloseButton = {[weak self] in
+                self?.didCollapseMenu()
+        }
     }
     
     convenience init() {
@@ -274,41 +291,110 @@ final class FloatingView: UIView {
     }
     override func layoutSubviews() {
         super.layoutSubviews()
-//        NSLayoutConstraint.activate([
-//            collapseMenuView.centerXAnchor.constraint(equalTo: self.centerXAnchor),
-//            collapseMenuView.centerYAnchor.constraint(equalTo: self.centerYAnchor)
-//        ])
-//
-//        NSLayoutConstraint.activate([
-//            expandMenuView.centerXAnchor.constraint(equalTo: self.centerXAnchor),
-//            expandMenuView.centerYAnchor.constraint(equalTo: self.centerYAnchor),
-//            expandMenuView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
-//            expandMenuView.topAnchor.constraint(equalTo: self.topAnchor),
-//            expandMenuView.trailingAnchor.constraint(equalTo: self.trailingAnchor),
-//            expandMenuView.bottomAnchor.constraint(equalTo: self.bottomAnchor)
-//        ])
     }
     
     @objc func didTapMenuButton() {
-        collapseMenuView.isHidden = true
+        didExpandMenu()
+    }
+    
+    private func didExpandMenu() {
         expandMenu?()
         expandAnimation()
-        self.addSubview(expandMenuView)
+    }
+    
+    private func didCollapseMenu() {
+        collapseMenu?()
+        collapseAnimation()
+    }
+    
+    private func collapseAnimation() {
+        collapseMenuView.isHidden = true
+        expandMenuView.isHidden = true
+        scaleView.isHidden = false
+        UIView.animate(withDuration: 0.2, animations: {[weak self] in
+            guard let self = self else {return}
+            self.scaleView.transform = CGAffineTransform.identity
+        }) { _ in
+            self.frame = Constant.collapseFrame
+            self.collapseMenuView.isHidden = false
+            self.expandMenuView.isHidden = true
+            self.scaleView.isHidden = true
+        }
     }
     
     private func expandAnimation() {
-        UIView.animate(withDuration: 0.1, delay: 0, options: .curveEaseInOut) {[weak self] in
+        collapseMenuView.isHidden = true
+        expandMenuView.isHidden = true
+        scaleView.isHidden = false
+        UIView.animate(withDuration: 0.2, delay: 0, options: .beginFromCurrentState) {[weak self] in
             guard let self = self else {
                 return
             }
+            let offset = UIOffset(horizontal: -Constant.width*(Constant.scaleX-1)/2.0,
+                                  vertical: -Constant.height*(Constant.scaleY-1)/2.0)
+            let scaleTransform = CGAffineTransform(scaleX: Constant.scaleX, y: Constant.scaleY)
+            let translateTransform = CGAffineTransform(translationX: offset.horizontal,
+                                                       y: offset.vertical)
+            self.scaleView.transform = scaleTransform
+                .concatenating(translateTransform)
+        } completion: { _ in
             self.frame = Constant.expandFrame
+            self.collapseMenuView.isHidden = true
+            self.expandMenuView.isHidden = false
+            self.scaleView.isHidden = true
         }
     }
 }
 
 final class ExpandMenuView: UIView {
+    
+    private struct Constant {
+        static let leadingMargin = 3.0
+        static let topMargin = 30.0
+        static let trailingMargin = 3.0
+        static let bottomMargin = 3.0
+        static let defaultRoundCorner: (corners: UIRectCorner, radius: CGFloat) = (corners: [.bottomLeft],
+                                         radius: FloatingView.Constant.height/2.0)
+    }
+    
+    private lazy var collectionView: UIView = {
+        let view =  UIView()
+        view.backgroundColor = .white
+        view.translatesAutoresizingMaskIntoConstraints = false
+        
+        return view
+    }()
+    
+    private var closeButton: UIButton = {
+        let button = UIButton(type: .close)
+        return button
+    }()
+    
+    var didTapCloseButton: (()->())?
+    
     convenience init() {
         self.init(frame: CGRect(origin: .zero, size: FloatingView.Constant.expandFrame.size))
-        self.roundCorners(corners: [.topLeft, .bottomLeft], radius: FloatingView.Constant.height/2.0)
+        self.roundCorners(corners: FloatingView.Constant.defaultRoundCorner.corners,
+                          radius: FloatingView.Constant.defaultRoundCorner.radius)
+        self.addSubview(collectionView)
+        self.addSubview(closeButton)
+        closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
+    }
+        
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        closeButton.frame = CGRect(origin: CGPoint(x: self.frame.width - 40.0,
+                                                   y: 0.0),
+                                   size: CGSize(width: 30.0, height: 30.0))
+        collectionView.frame = CGRect(origin: CGPoint(x: Constant.leadingMargin,
+                                                      y: Constant.topMargin),
+                                      size: CGSize(width: self.frame.width - Constant.leadingMargin - Constant.trailingMargin,
+                                                   height: self.frame.height - Constant.topMargin - Constant.bottomMargin))
+        collectionView.roundCorners(corners: Constant.defaultRoundCorner.corners,
+                                    radius: Constant.defaultRoundCorner.radius)
+    }
+    
+    @objc private func didTapClose() {
+        didTapCloseButton?()
     }
 }
