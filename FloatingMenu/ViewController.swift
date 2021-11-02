@@ -211,10 +211,10 @@ final class FloatingView: UIView {
         static let animationDuration: CGFloat = 0.4
         static let widthCollapseView: CGFloat = 100.0
         static let heightCollapseView: CGFloat = 30.0
-        static let leadingMargin = 50.0
+        static var leadingMargin = 100.0
         static let trailingMargin = 20.0
-        static let topMargin = 100.0
-        static let bottomMargin = 50.0
+        static let topMargin = 200.0
+        static let bottomMargin = 100.0
         
         private static let sizeCollapseView: CGSize = CGSize(width: Constant.widthCollapseView, height: Constant.heightCollapseView)
         private static let originCollapseView: CGPoint = CGPoint(x: UIScreen.main.bounds.size.width
@@ -303,7 +303,7 @@ final class FloatingView: UIView {
             self.expandMenuView.isHidden = true
         }
     }
-    
+
     private func expandAnimation() {
         self.collapseMenuView.isHidden = true
         self.expandMenuView.isHidden = false
@@ -330,10 +330,10 @@ final class FloatingView: UIView {
 final class ExpandMenuView: UIView {
     
     private struct Constant {
-        static let leadingMargin = 3.0
-        static let topMargin = 30.0
-        static let trailingMargin = 3.0
-        static let bottomMargin = 3.0
+        static let collectionLeadingMargin = 3.0
+        static let collectionTopMargin = 30.0
+        static let collectionTrailingMargin = 3.0
+        static let collectionBottomMargin = 3.0
         static let defaultRoundCorner: (corners: UIRectCorner, radius: CGFloat) = (corners: [.bottomLeft],
                                          radius: FloatingView.Constant.heightCollapseView/2.0)
         static let closeButtonSize: CGSize = CGSize(width: 30.0, height: 30.0)
@@ -370,10 +370,10 @@ final class ExpandMenuView: UIView {
         closeButton.frame = CGRect(origin: CGPoint(x: self.frame.width - Constant.closeButtonSize.width - Constant.tralingCloseButtonMargin,
                                                    y: Constant.topCloseButtonMargin),
                                    size: Constant.closeButtonSize)
-        collectionView.frame = CGRect(origin: CGPoint(x: Constant.leadingMargin,
-                                                      y: Constant.topMargin),
-                                      size: CGSize(width: self.frame.width - Constant.leadingMargin - Constant.trailingMargin,
-                                                   height: self.frame.height - Constant.topMargin - Constant.bottomMargin))
+        collectionView.frame = CGRect(origin: CGPoint(x: Constant.collectionLeadingMargin,
+                                                      y: Constant.collectionTopMargin),
+                                      size: CGSize(width: self.frame.width - Constant.collectionLeadingMargin - Constant.collectionTrailingMargin,
+                                                   height: self.frame.height - Constant.collectionTopMargin - Constant.collectionBottomMargin))
         collectionView.roundCorners(corners: Constant.defaultRoundCorner.corners,
                                     radius: Constant.defaultRoundCorner.radius)
     }
