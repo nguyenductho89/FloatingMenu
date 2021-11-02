@@ -193,7 +193,7 @@ extension UIView {
 final class FloatingHomeButton: UIButton {
 
     convenience init() {
-        self.init(frame: CGRect(origin: .zero, size: CGSize(width: FloatingView.Constant.widthCollapseView, height: FloatingView.Constant.heightCollapseView)))
+        self.init(frame: CGRect(origin: .zero, size: FloatingView.Constant.sizeCollapseView))
         self.setImage(UIImage(systemName: "paperplane.fill"), for: .normal)
         self.setTitle("Menu", for: .normal)
         self.backgroundColor = .systemBlue
@@ -208,6 +208,7 @@ final class FloatingHomeButton: UIButton {
 final class FloatingView: UIView {
     
     struct Constant {
+        static let animationDuration: CGFloat = 0.4
         static let widthCollapseView: CGFloat = 100.0
         static let heightCollapseView: CGFloat = 30.0
         static let leadingMargin = 50.0
@@ -277,9 +278,6 @@ final class FloatingView: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    override func layoutSubviews() {
-        super.layoutSubviews()
-    }
     
     @objc func didTapMenuButton() {
         didExpandMenu()
@@ -296,7 +294,7 @@ final class FloatingView: UIView {
     }
     
     private func collapseAnimation() {
-        UIView.animate(withDuration: 0.4, animations: {[weak self] in
+        UIView.animate(withDuration: Constant.animationDuration, animations: {[weak self] in
             guard let self = self else {return}
             self.expandMenuView.transform = CGAffineTransform.identity
         }) {[weak self] _ in
@@ -309,7 +307,7 @@ final class FloatingView: UIView {
     private func expandAnimation() {
         self.collapseMenuView.isHidden = true
         self.expandMenuView.isHidden = false
-        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseIn) {[weak self] in
+        UIView.animate(withDuration: Constant.animationDuration, delay: 0, options: .curveEaseIn) {[weak self] in
             guard let self = self else {
                 return
             }
