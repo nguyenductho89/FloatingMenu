@@ -193,7 +193,7 @@ extension UIView {
 final class FloatingHomeButton: UIButton {
 
     convenience init() {
-        self.init(frame: CGRect(origin: .zero, size: CGSize(width: FloatingView.Constant.width, height: FloatingView.Constant.height)))
+        self.init(frame: CGRect(origin: .zero, size: CGSize(width: FloatingView.Constant.widthCollapseView, height: FloatingView.Constant.heightCollapseView)))
         self.setImage(UIImage(systemName: "paperplane.fill"), for: .normal)
         self.setTitle("Menu", for: .normal)
         self.backgroundColor = .systemBlue
@@ -208,30 +208,22 @@ final class FloatingHomeButton: UIButton {
 final class FloatingView: UIView {
     
     struct Constant {
-        static let width: CGFloat = 100.0
-        static let height: CGFloat = 30.0
+        static let widthCollapseView: CGFloat = 100.0
+        static let heightCollapseView: CGFloat = 30.0
         static let leadingMargin = 50.0
         static let trailingMargin = 20.0
         static let topMargin = 100.0
         static let bottomMargin = 50.0
         
-        static let size: CGSize = CGSize(width: Constant.width, height: Constant.height)
-        static let origin: CGPoint = CGPoint(x: UIScreen.main.bounds.size.width
-                                                    - Constant.width
+        static let sizeCollapseView: CGSize = CGSize(width: Constant.widthCollapseView, height: Constant.heightCollapseView)
+        static let originCollapseView: CGPoint = CGPoint(x: UIScreen.main.bounds.size.width
+                                                    - Constant.widthCollapseView
                                                     - Constant.trailingMargin,
                                                     y: UIScreen.main.bounds.size.height
-                                                    - Constant.height
+                                                    - Constant.heightCollapseView
                                                     - Constant.bottomMargin)
         static let defaultRoundCorner: (corners: UIRectCorner, radius: CGFloat) = (corners: [.topLeft, .bottomLeft],
-                                         radius: FloatingView.Constant.height/2.0)
-        static var scaleX: CGFloat {
-            let expandMenuWidth = UIScreen.main.bounds.width - Constant.leadingMargin - Constant.trailingMargin
-            return expandMenuWidth/Constant.width
-        }
-        static var scaleY: CGFloat {
-            let expandMenuHeight = UIScreen.main.bounds.height - Constant.topMargin - Constant.bottomMargin
-            return expandMenuHeight/Constant.height
-        }
+                                         radius: FloatingView.Constant.heightCollapseView/2.0)
         
         static var expandFrame: CGRect {
             let origin = CGPoint(x: FloatingView.Constant.leadingMargin, y: FloatingView.Constant.topMargin)
@@ -242,7 +234,7 @@ final class FloatingView: UIView {
         }
         
         static var collapseFrame: CGRect {
-            return CGRect(origin: origin, size: size)
+            return CGRect(origin: originCollapseView, size: sizeCollapseView)
         }
     }
     
@@ -259,31 +251,27 @@ final class FloatingView: UIView {
         return menu
     }()
     
-    private let scaleView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .systemBlue
-        view.frame = CGRect(origin: .zero, size: Constant.size)
-        view.isHidden = true
-        return view
-    }()
-    
     var expandMenu: (()->())?
     var collapseMenu: (()->())?
     
     override init(frame: CGRect) {
         super.init(frame: frame)
+        self.clipsToBounds = true
+        self.backgroundColor = .clear
         self.addSubview(expandMenuView)
         self.addSubview(collapseMenuView)
-        self.addSubview(scaleView)
         collapseMenuView.addTarget(self, action: #selector(didTapMenuButton), for: .touchUpInside)
         expandMenuView.didTapCloseButton = {[weak self] in
                 self?.didCollapseMenu()
         }
+        collapseMenuView.frame.origin = CGPoint(x: self.frame.size.width - Constant.widthCollapseView,
+                                              y: self.frame.size.height - Constant.heightCollapseView)
+        expandMenuView.frame.origin = CGPoint(x: self.frame.size.width - Constant.widthCollapseView,
+                                              y: self.frame.size.height - Constant.heightCollapseView)
     }
     
     convenience init() {
-        self.init(frame: CGRect(origin: Constant.origin,
-                                size: Constant.size))
+        self.init(frame: Constant.expandFrame)
     }
     
     required init?(coder: NSCoder) {
@@ -308,41 +296,36 @@ final class FloatingView: UIView {
     }
     
     private func collapseAnimation() {
-        collapseMenuView.isHidden = true
-        expandMenuView.isHidden = true
-        scaleView.isHidden = false
-        UIView.animate(withDuration: 0.2, animations: {[weak self] in
+        UIView.animate(withDuration: 0.4, animations: {[weak self] in
             guard let self = self else {return}
-            self.scaleView.transform = CGAffineTransform.identity
-        }) { _ in
-            self.frame = Constant.collapseFrame
+            self.expandMenuView.transform = CGAffineTransform.identity
+        }) {[weak self] _ in
+            guard let self = self else {return}
             self.collapseMenuView.isHidden = false
             self.expandMenuView.isHidden = true
-            self.scaleView.isHidden = true
         }
     }
     
     private func expandAnimation() {
-        collapseMenuView.isHidden = true
-        expandMenuView.isHidden = true
-        scaleView.isHidden = false
-        UIView.animate(withDuration: 0.2, delay: 0, options: .beginFromCurrentState) {[weak self] in
+        self.collapseMenuView.isHidden = true
+        self.expandMenuView.isHidden = false
+        UIView.animate(withDuration: 0.4, delay: 0, options: .curveEaseIn) {[weak self] in
             guard let self = self else {
                 return
             }
-            let offset = UIOffset(horizontal: -Constant.width*(Constant.scaleX-1)/2.0,
-                                  vertical: -Constant.height*(Constant.scaleY-1)/2.0)
-            let scaleTransform = CGAffineTransform(scaleX: Constant.scaleX, y: Constant.scaleY)
-            let translateTransform = CGAffineTransform(translationX: offset.horizontal,
-                                                       y: offset.vertical)
-            self.scaleView.transform = scaleTransform
-                .concatenating(translateTransform)
-        } completion: { _ in
-            self.frame = Constant.expandFrame
-            self.collapseMenuView.isHidden = true
-            self.expandMenuView.isHidden = false
-            self.scaleView.isHidden = true
+            self.expandMenuView.transform = CGAffineTransform(translationX: Constant.expandFrame.origin.x - Constant.collapseFrame.origin.x,
+                                                              y: Constant.expandFrame.origin.y - Constant.collapseFrame.origin.y)
         }
+    }
+    
+    /// Pass through view:  Allow user touches views behind this view
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        for subview in subviews {
+            if subview.frame.contains(point) {
+                return true
+            }
+        }
+        return false
     }
 }
 
@@ -354,7 +337,7 @@ final class ExpandMenuView: UIView {
         static let trailingMargin = 3.0
         static let bottomMargin = 3.0
         static let defaultRoundCorner: (corners: UIRectCorner, radius: CGFloat) = (corners: [.bottomLeft],
-                                         radius: FloatingView.Constant.height/2.0)
+                                         radius: FloatingView.Constant.heightCollapseView/2.0)
     }
     
     private lazy var collectionView: UIView = {
